@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PantauPangan.id - Agregasi Harga Kebutuhan Pokok Nasional</title>
+    <title>PantauPangan - Agregasi Harga Kebutuhan Pokok Nasional</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js untuk Grafik Interaktif -->
@@ -89,7 +89,7 @@
                         <div class="min-w-0">
                             <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                                 <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 truncate">
-                                    Pantau<span class="text-emerald-600">Pangan</span>.id
+                                    Pantau<span class="text-emerald-600">Pangan</span>
                                 </h1>
                                 <span id="connection-status-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-amber-100 text-amber-800 shrink-0">
                                     <span id="connection-status-dot" class="w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>
@@ -218,11 +218,19 @@
                 <p id="api-source-detail" class="text-xs sm:text-sm text-emerald-100/90 max-w-3xl leading-relaxed">
                     Menarik data harga secara langsung (Live API) dari endpoint publik <strong class="text-white">Panel Harga Pangan Bapanas</strong>, <strong class="text-white">SP2KP Kemendag</strong>, dan <strong class="text-white">PIHPS Bank Indonesia</strong>.
                 </p>
-                    <span class="px-2.5 py-1 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-[11px] sm:text-xs font-medium flex items-center gap-1.5">
-                        <span class="w-2 h-2 rounded-full bg-indigo-400"></span> PIHPS BI
-                    </span>
-                </div>
             </div>
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+                <span class="px-2.5 py-1 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-[11px] sm:text-xs font-medium flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span> SP2KP Kemendag
+                </span>
+                <span class="px-2.5 py-1 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-[11px] sm:text-xs font-medium flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-400"></span> Panel Bapanas
+                </span>
+                <span class="px-2.5 py-1 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-[11px] sm:text-xs font-medium flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-indigo-400"></span> PIHPS BI
+                </span>
+            </div>
+        </div>
 
         <!-- Catatan Validitas & Transparansi Data -->
         <div class="bg-amber-50/90 border border-amber-200 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-amber-900">
@@ -577,7 +585,7 @@
     <footer class="bg-white border-t border-slate-200 mt-10 py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left text-xs text-slate-500">
             <div class="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
-                <span class="font-bold text-slate-800">PantauPangan.id</span>
+                <span class="font-bold text-slate-800">PantauPangan</span>
                 <span>&copy; 2026 Sistem Informasi Agregasi Harga Kebutuhan Pokok Indonesia.</span>
             </div>
             <div class="flex flex-wrap justify-center items-center gap-3">
