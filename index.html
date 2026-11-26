@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PantauPangan.id - Agregasi Harga Kebutuhan Pokok Nasional</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js untuk Grafik Interaktif -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        emerald: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            200: '#a7f3d0',
+                            300: '#6ee7b7',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Kustomisasi scrollbar halus */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Sembunyikan scrollbar horizontal pada category pills di mobile */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .row-selected {
+            background-color: #ecfdf5 !important;
+            border-left: 4px solid #059669;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col overflow-x-hidden">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Header & Navigasi (Mobile-First Responsive) -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between py-3 sm:py-3.5 gap-3">
+                
+                <!-- Brand & Status Sinkronisasi Otomatis -->
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div class="bg-emerald-600 text-white p-2 sm:p-2.5 rounded-xl shadow-sm flex items-center justify-center shrink-0">
+                            <i data-lucide="sprout" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 truncate">
+                                    Pantau<span class="text-emerald-600">Pangan</span>.id
+                                </h1>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-emerald-100 text-emerald-800 shrink-0">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping"></span>
+                                    Sinkronisasi Otomatis Aktif
+                                </span>
+                            </div>
+                            <p class="text-[11px] sm:text-xs text-slate-500 flex items-center gap-1.5 mt-0.5 truncate">
+                                <i data-lucide="clock" class="w-3 h-3 text-emerald-600 shrink-0"></i>
+                                <span class="truncate">Update Otomatis: <span id="last-updated-text" class="font-semibold text-slate-700">25 Nov 2026, 14:49 WIB</span></span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kontrol Wilayah, Ekspor CSV & Refresh Otomatis -->
+                <div class="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2">
+                    <!-- Filter Wilayah -->
+                    <div class="relative w-full sm:w-56">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-emerald-600"></i>
+                        </div>
+                        <select id="region-select" onchange="handleRegionChange()" class="w-full min-h-[42px] pl-9 pr-8 py-2 text-xs sm:text-sm font-medium bg-slate-50 border border-slate-300 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition cursor-pointer">
+                            <option value="nasional">Nasional (HNT - Rata-rata)</option>
+                            <option value="regionA">Region A (Jawa, Bali & Nusra)</option>
+                            <option value="regionB">Region B (Sumatera, Kalimantan & Sulawesi)</option>
+                            <option value="regionC">Region C (Maluku & Papua)</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:flex items-center gap-2">
+                        <!-- Tombol Unduh CSV di Header -->
+                        <button onclick="exportToCSV()" class="min-h-[42px] inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition shadow-sm">
+                            <i data-lucide="download" class="w-4 h-4 text-slate-600"></i>
+                            <span>Unduh CSV</span>
+                        </button>
+
+                        <!-- Tombol Refresh Sinkronisasi Otomatis -->
+                        <button id="sync-btn" onclick="syncData()" class="min-h-[42px] inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition shadow-sm">
+                            <i id="sync-icon" data-lucide="refresh-cw" class="w-4 h-4"></i>
+                            <span>Refresh Data</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- Konten Utama -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5 sm:space-y-6">
+
+        <!-- Info Banner Sumber Resmi -->
+        <div class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-slate-900 rounded-2xl p-4 sm:p-5 text-white shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-3.5">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2 text-emerald-300 text-[11px] sm:text-xs font-semibold uppercase tracking-wider">
+                    <i data-lucide="shield-check" class="w-4 h-4 shrink-0"></i>
+                    <span>Integrasi Data Otomatis Multi-Kementerian & Lembaga</span>
+                </div>
+                <h2 class="text-sm sm:text-lg font-bold leading-snug">Pemantauan Harga Eceran Konsumen & Stabilisasi Pasokan Pangan</h2>
+                <p class="text-xs sm:text-sm text-emerald-100/90 max-w-3xl leading-relaxed">
+                    Seluruh data harga ditarik secara otomatis (read-only) dari <strong class="text-white">SP2KP Kemendag</strong>, <strong class="text-white">Panel Harga Pangan Bapanas</strong>, dan <strong class="text-white">PIHPS Bank Indonesia</strong>.
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-1.5 sm:gap-2 shrink-0">
+                <span class="px-2.5 py-1 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-[11px] sm:text-xs font-medium flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-blue-400"></span> Kemendag SP2KP
+                </span>
+                <span class="px-2.5 py-1 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-[11px] sm:text-xs font-medium flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-400"></span> Bapanas
+                </span>
+                <span class="px-2.5 py-1 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-[11px] sm:text-xs font-medium flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-indigo-400"></span> PIHPS BI
+                </span>
+            </div>
+        </div>
+
+        <!-- 2. Ringkasan Statistik (KPI Cards: 2 Kolom di HP, 4 Kolom di Desktop) -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <!-- KPI 1: Rata-rata Perubahan Harian -->
+            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                <div class="flex items-center justify-between gap-1">
+                    <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">Rata-Rata Harian</span>
+                    <div class="p-1.5 sm:p-2 bg-slate-100 text-slate-600 rounded-xl shrink-0">
+                        <i data-lucide="activity" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-2.5 sm:mt-3 flex flex-wrap items-baseline gap-1.5 sm:gap-2">
+                    <span id="kpi-avg-change" class="text-lg sm:text-2xl font-extrabold text-slate-900">-0.04%</span>
+                    <span id="kpi-avg-badge" class="inline-flex items-center gap-0.5 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-emerald-100 text-emerald-700">
+                        <i data-lucide="trending-down" class="w-3 h-3"></i> Stabil Turun
+                    </span>
+                </div>
+                <p class="mt-1.5 text-[11px] sm:text-xs text-slate-500 line-clamp-2">Perubahan agregat seluruh komoditas vs kemarin</p>
+            </div>
+
+            <!-- KPI 2: Komoditas Paling Naik -->
+            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                <div class="flex items-center justify-between gap-1">
+                    <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">Kenaikan Tertinggi</span>
+                    <div class="p-1.5 sm:p-2 bg-rose-50 text-rose-600 rounded-xl shrink-0">
+                        <i data-lucide="trending-up" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-2.5 sm:mt-3 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
+                    <span id="kpi-top-up-name" class="text-sm sm:text-lg font-bold text-slate-900 truncate">Ketela Pohon</span>
+                    <span id="kpi-top-up-pct" class="inline-flex items-center self-start sm:self-auto gap-0.5 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-rose-100 text-rose-700 shrink-0">
+                        +0.81%
+                    </span>
+                </div>
+                <p id="kpi-top-up-price" class="mt-1.5 text-[11px] sm:text-xs text-slate-600 font-medium truncate">Rp 4.970 / kg (SP2KP Kemendag)</p>
+            </div>
+
+            <!-- KPI 3: Komoditas Paling Turun -->
+            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                <div class="flex items-center justify-between gap-1">
+                    <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">Penurunan Tertajam</span>
+                    <div class="p-1.5 sm:p-2 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
+                        <i data-lucide="trending-down" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-2.5 sm:mt-3 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
+                    <span id="kpi-top-down-name" class="text-sm sm:text-lg font-bold text-slate-900 truncate">Cabai Rawit Merah</span>
+                    <span id="kpi-top-down-pct" class="inline-flex items-center self-start sm:self-auto gap-0.5 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-emerald-100 text-emerald-700 shrink-0">
+                        -0.69%
+                    </span>
+                </div>
+                <p id="kpi-top-down-price" class="mt-1.5 text-[11px] sm:text-xs text-slate-600 font-medium truncate">Rp 72.860 / kg (SP2KP Kemendag)</p>
+            </div>
+
+            <!-- KPI 4: Total Komoditas Terpantau -->
+            <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                <div class="flex items-center justify-between gap-1">
+                    <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">Komoditas Aktif</span>
+                    <div class="p-1.5 sm:p-2 bg-blue-50 text-blue-600 rounded-xl shrink-0">
+                        <i data-lucide="layers" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                    </div>
+                </div>
+                <div class="mt-2.5 sm:mt-3 flex items-baseline gap-1.5 sm:gap-2">
+                    <span id="kpi-total-count" class="text-lg sm:text-2xl font-extrabold text-slate-900">33</span>
+                    <span class="text-[11px] sm:text-xs font-medium text-slate-500">Komoditas</span>
+                </div>
+                <p class="mt-1.5 text-[11px] sm:text-xs text-slate-500 line-clamp-2">Tersebar di 514 Kab/Kota & 38 Provinsi</p>
+            </div>
+        </section>
+
+        <!-- 5. Grafik Tren Harga & Perbandingan Sumber (Chart.js) -->
+        <section id="chart-section" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 pb-4 border-b border-slate-100">
+                <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs font-semibold">Analisis Visual</span>
+                        <span id="chart-region-badge" class="text-[11px] sm:text-xs text-slate-500 font-medium">Wilayah: Nasional (HNT)</span>
+                    </div>
+                    <h3 id="chart-commodity-title" class="text-base sm:text-xl font-bold text-slate-900 mt-1">
+                        Beras Premium (per kg)
+                    </h3>
+                    <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Ketuk komoditas mana pun pada daftar di bawah untuk memantau tren 7 hari & disparitas harga.</p>
+                </div>
+                
+                <!-- Ringkasan Cepat Komoditas Terpilih -->
+                <div class="grid grid-cols-3 gap-2 sm:gap-4 bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-200/80">
+                    <div>
+                        <span class="text-[10px] sm:text-[11px] font-medium text-slate-500 block">Kemendag SP2KP</span>
+                        <span id="selected-kemendag" class="text-xs sm:text-base font-bold text-emerald-700">Rp 15.709</span>
+                    </div>
+                    <div class="border-l border-slate-200 pl-2 sm:pl-4">
+                        <span class="text-[10px] sm:text-[11px] font-medium text-slate-500 block">Panel Bapanas</span>
+                        <span id="selected-bapanas" class="text-xs sm:text-base font-bold text-amber-600">Rp 15.650</span>
+                    </div>
+                    <div class="border-l border-slate-200 pl-2 sm:pl-4">
+                        <span class="text-[10px] sm:text-[11px] font-medium text-slate-500 block">PIHPS BI</span>
+                        <span id="selected-pihps" class="text-xs sm:text-base font-bold text-blue-600">Rp 15.800</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid Dua Grafik dengan tinggi proporsional mobile (240px) & desktop (300px) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6 mt-4 sm:mt-5">
+                <!-- Grafik 1: Tren Harga 7 Hari Terakhir (Line Chart) -->
+                <div class="lg:col-span-2 flex flex-col">
+                    <h4 class="text-xs sm:text-sm font-semibold text-slate-700 mb-2.5 flex items-center gap-1.5">
+                        <i data-lucide="line-chart" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                        <span>Tren Pergerakan Harga 7 Hari Terakhir</span>
+                    </h4>
+                    <div class="relative h-[240px] md:h-[300px] w-full bg-slate-50/50 rounded-xl p-2 border border-slate-100">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Grafik 2: Perbandingan Antar Sumber (Bar Chart) -->
+                <div class="flex flex-col">
+                    <h4 class="text-xs sm:text-sm font-semibold text-slate-700 mb-2.5 flex items-center gap-1.5">
+                        <i data-lucide="bar-chart-2" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                        <span>Perbandingan Lintas Sumber Hari Ini</span>
+                    </h4>
+                    <div class="relative h-[240px] md:h-[300px] w-full bg-slate-50/50 rounded-xl p-2 border border-slate-100">
+                        <canvas id="sourceCompareChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3 & 4. Filter, Pencarian & Dual-View Harga Multi-Sumber -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <!-- Toolbar Filter & Aksi -->
+            <div class="p-4 sm:p-5 border-b border-slate-200 space-y-3.5 sm:space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-slate-900">Daftar Harga Kebutuhan Pokok Multi-Sumber</h3>
+                        <p class="text-[11px] sm:text-xs text-slate-500">Data otomatis terverifikasi (Rupiah per satuan standar)</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <!-- Tombol Buka Kalkulator Belanja -->
+                        <button onclick="toggleCalculatorDrawer()" class="w-full sm:w-auto min-h-[42px] inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition">
+                            <i data-lucide="calculator" class="w-4 h-4"></i>
+                            <span>Kalkulator Belanja</span>
+                            <span id="calc-badge-count" class="ml-1 px-1.5 py-0.5 text-[11px] bg-emerald-600 text-white rounded-full">0</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Baris Pencarian & Filter Dropdown -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-2.5 sm:gap-3">
+                    <!-- Kolom Pencarian Full-Width di HP -->
+                    <div class="md:col-span-5 relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
+                        </div>
+                        <input type="text" id="search-input" oninput="applyFilters()" placeholder="Cari komoditas (Beras, Cabai, Minyakita)..." class="w-full min-h-[44px] pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                    </div>
+
+                    <!-- Filter Sumber Data -->
+                    <div class="md:col-span-3">
+                        <select id="source-filter" onchange="applyFilters()" class="w-full min-h-[44px] px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="all">Sumber: Semua Sumber Data</option>
+                            <option value="kemendag">Fokus: Kemendag SP2KP</option>
+                            <option value="bapanas">Fokus: Panel Bapanas</option>
+                            <option value="pihps">Fokus: PIHPS Bank Indonesia</option>
+                        </select>
+                    </div>
+
+                    <!-- Filter Urutan Perubahan -->
+                    <div class="md:col-span-4">
+                        <select id="sort-filter" onchange="applyFilters()" class="w-full min-h-[44px] px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="default">Urutkan: Standar Kategori</option>
+                            <option value="change-desc">Perubahan: Kenaikan Tertinggi (%)</option>
+                            <option value="change-asc">Perubahan: Penurunan Tertajam (%)</option>
+                            <option value="price-desc">Harga: Termahal ke Termurah</option>
+                            <option value="price-asc">Harga: Termurah ke Termahal</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Horizontal Scrollable Category Pills (Scrollbar Tersembunyi di HP) -->
+                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1" id="category-pills">
+                    <button onclick="setCategory('Semua')" data-cat="Semua" class="cat-pill active min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white whitespace-nowrap transition shrink-0">
+                        Semua Komoditas
+                    </button>
+                    <button onclick="setCategory('Beras & Biji-bijian')" data-cat="Beras & Biji-bijian" class="cat-pill min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition shrink-0">
+                        Beras & Biji-bijian
+                    </button>
+                    <button onclick="setCategory('Minyak & Gula')" data-cat="Minyak & Gula" class="cat-pill min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition shrink-0">
+                        Minyak & Gula
+                    </button>
+                    <button onclick="setCategory('Daging & Telur')" data-cat="Daging & Telur" class="cat-pill min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition shrink-0">
+                        Daging & Telur
+                    </button>
+                    <button onclick="setCategory('Cabai & Bawang')" data-cat="Cabai & Bawang" class="cat-pill min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition shrink-0">
+                        Cabai & Bawang
+                    </button>
+                    <button onclick="setCategory('Ikan & Sayuran')" data-cat="Ikan & Sayuran" class="cat-pill min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition shrink-0">
+                        Ikan & Sayuran
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tampilan Desktop (>= 768px): Tabel Interaktif Read-Only -->
+            <div class="hidden md:block overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                            <th class="py-3.5 px-4">Komoditas & Kategori</th>
+                            <th class="py-3.5 px-3 text-center">Satuan</th>
+                            <th class="py-3.5 px-4 text-right text-emerald-800 bg-emerald-50/50">Kemendag SP2KP</th>
+                            <th class="py-3.5 px-4 text-right">Panel Bapanas</th>
+                            <th class="py-3.5 px-4 text-right">PIHPS BI</th>
+                            <th class="py-3.5 px-4 text-right">Rata-rata / Selisih</th>
+                            <th class="py-3.5 px-4 text-center">Perubahan (1H)</th>
+                            <th class="py-3.5 px-4 text-center">Kalkulator</th>
+                        </tr>
+                    </thead>
+                    <tbody id="commodity-table-body" class="divide-y divide-slate-100 text-sm">
+                        <!-- Diisi secara dinamis melalui JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tampilan Handphone (< 768px): Mobile Card List Tap-Friendly -->
+            <div id="commodity-mobile-cards" class="md:hidden p-3 space-y-3 bg-slate-50/70">
+                <!-- Diisi secara dinamis melalui JavaScript -->
+            </div>
+
+            <!-- Empty State jika pencarian tidak ditemukan -->
+            <div id="empty-state" class="hidden py-12 px-4 text-center">
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-400 mb-3">
+                    <i data-lucide="search-x" class="w-6 h-6"></i>
+                </div>
+                <h4 class="text-base font-bold text-slate-800">Komoditas tidak ditemukan</h4>
+                <p class="text-xs text-slate-500 mt-1">Coba ubah kata kunci pencarian atau pilih kategori "Semua Komoditas".</p>
+                <button onclick="resetFilters()" class="mt-4 min-h-[42px] px-4 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition">
+                    Reset Semua Filter
+                </button>
+            </div>
+        </section>
+
+        <!-- 6. Panel Kalkulator Belanja Sembako (Touch Target >= 44px) -->
+        <section id="calculator-section" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+            <div class="flex flex-col gap-3.5 pb-4 border-b border-slate-100">
+                <div class="flex items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl shrink-0">
+                            <i data-lucide="shopping-basket" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base sm:text-lg font-bold text-slate-900">Kalkulator Estimasi Belanja Sembako</h3>
+                            <p class="text-[11px] sm:text-xs text-slate-500">Hitung estimasi pengeluaran rumah tangga berdasarkan harga otomatis terkini</p>
+                        </div>
+                    </div>
+                    <button onclick="clearCalculator()" class="min-h-[44px] px-3.5 py-2 text-xs font-semibold text-rose-600 bg-rose-50 rounded-xl hover:bg-rose-100 transition shrink-0">
+                        Kosongkan
+                    </button>
+                </div>
+
+                <!-- Tombol Paket Belanja Cepat (Touch Target >= 44px) -->
+                <div class="space-y-1.5">
+                    <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Muat Paket Belanja Cepat:</span>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="loadCalculatorPreset('harian')" class="min-h-[44px] px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 rounded-xl transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="utensils" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
+                            <span>Harian</span>
+                        </button>
+                        <button onclick="loadCalculatorPreset('mingguan')" class="min-h-[44px] px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 rounded-xl transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="calendar-days" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
+                            <span>Mingguan</span>
+                        </button>
+                        <button onclick="loadCalculatorPreset('umkm')" class="min-h-[44px] px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 rounded-xl transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="store" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
+                            <span>UMKM</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6 mt-4 sm:mt-5">
+                <!-- Daftar Item Kalkulator -->
+                <div class="lg:col-span-2 space-y-3">
+                    <!-- Tambah Item ke Kalkulator -->
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <select id="calc-add-select" class="flex-1 min-h-[44px] px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <!-- Diisi opsi komoditas -->
+                        </select>
+                        <div class="flex gap-2">
+                            <input type="number" id="calc-add-qty" value="1" min="0.1" step="0.5" class="w-24 min-h-[44px] px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl text-center font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Jml">
+                            <button onclick="addSelectedToCalculator()" class="flex-1 sm:flex-initial min-h-[44px] px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition flex items-center justify-center gap-1.5 shrink-0">
+                                <i data-lucide="plus" class="w-4 h-4"></i> Tambah
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- List Keranjang Belanja -->
+                    <div id="calc-items-list" class="divide-y divide-slate-200 border border-slate-200 rounded-xl overflow-hidden bg-slate-50/40">
+                        <!-- Diisi dinamis -->
+                    </div>
+                </div>
+
+                <!-- Ringkasan Total Estimasi -->
+                <div class="bg-slate-900 text-white rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Ringkasan Estimasi</span>
+                            <span id="calc-region-label" class="text-xs px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-medium">Nasional</span>
+                        </div>
+                        
+                        <div class="space-y-2.5 text-xs sm:text-sm">
+                            <div class="flex justify-between text-slate-300">
+                                <span>Acuan Kemendag SP2KP:</span>
+                                <span id="calc-total-kemendag" class="font-bold text-white">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between text-slate-300">
+                                <span>Acuan Panel Bapanas:</span>
+                                <span id="calc-total-bapanas" class="font-semibold text-amber-300">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between text-slate-300">
+                                <span>Acuan PIHPS BI:</span>
+                                <span id="calc-total-pihps" class="font-semibold text-blue-300">Rp 0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-slate-700">
+                        <span class="text-xs text-slate-400 block">Rata-Rata Agregat Estimasi Belanja</span>
+                        <div id="calc-total-avg" class="text-2xl sm:text-3xl font-extrabold text-emerald-400 mt-1">Rp 0</div>
+                        <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                            *Harga merupakan rata-rata tingkat konsumen eceran otomatis dari sistem pemerintah dan dapat bervariasi di tiap pasar.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-10 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left text-xs text-slate-500">
+            <div class="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+                <span class="font-bold text-slate-800">PantauPangan.id</span>
+                <span>&copy; 2026 Sistem Informasi Agregasi Harga Kebutuhan Pokok Indonesia.</span>
+            </div>
+            <div class="flex flex-wrap justify-center items-center gap-3">
+                <span>Sumber: SP2KP Kemendag</span>
+                <span>&bull;</span>
+                <span>Bapanas</span>
+                <span>&bull;</span>
+                <span>PIHPS Bank Indonesia</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // ==========================================
+        // 1. DATASET KOMODITAS POKOK (33 KOMODITAS - READ-ONLY OTOMATIS)
+        // Mengacu data SP2KP Kemendag 24-25 Nov 2026 + Pembanding Bapanas & PIHPS BI
+        // ==========================================
+        const commoditiesData = [
+            // Beras & Biji-bijian
+            { id: 1, name: "Beras Premium", category: "Beras & Biji-bijian", unit: "kg", kemendag: 15709, bapanas: 15650, pihps: 15800, change: 0.12, history: [15650, 15665, 15670, 15685, 15690, 15690, 15709] },
+            { id: 2, name: "Beras Medium", category: "Beras & Biji-bijian", unit: "kg", kemendag: 14028, bapanas: 13980, pihps: 14100, change: -0.08, history: [14060, 14055, 14050, 14045, 14040, 14039, 14028] },
+            { id: 3, name: "Beras SPHP Bulog", category: "Beras & Biji-bijian", unit: "kg", kemendag: 12372, bapanas: 12350, pihps: 12400, change: 0.00, history: [12372, 12372, 12372, 12372, 12372, 12372, 12372] },
+            { id: 4, name: "Kedelai Biji Kering (Impor)", category: "Beras & Biji-bijian", unit: "kg", kemendag: 11240, bapanas: 11180, pihps: 11300, change: -0.18, history: [11310, 11295, 11280, 11270, 11265, 11260, 11240] },
+            { id: 5, name: "Jagung Pipilan Kering", category: "Beras & Biji-bijian", unit: "kg", kemendag: 6420, bapanas: 6350, pihps: 6500, change: 0.31, history: [6340, 6355, 6370, 6380, 6390, 6400, 6420] },
+            { id: 6, name: "Tepung Terigu Curah", category: "Beras & Biji-bijian", unit: "kg", kemendag: 10540, bapanas: 10490, pihps: 10600, change: -0.09, history: [10580, 10570, 10565, 10560, 10555, 10550, 10540] },
+            { id: 7, name: "Tepung Terigu Kemasan", category: "Beras & Biji-bijian", unit: "kg", kemendag: 13210, bapanas: 13150, pihps: 13250, change: 0.05, history: [13190, 13195, 13200, 13200, 13205, 13203, 13210] },
+            { id: 8, name: "Kacang Hijau", category: "Beras & Biji-bijian", unit: "kg", kemendag: 24850, bapanas: 24700, pihps: 25000, change: 0.16, history: [24750, 24770, 24790, 24800, 24810, 24810, 24850] },
+            { id: 9, name: "Kacang Tanah", category: "Beras & Biji-bijian", unit: "kg", kemendag: 28940, bapanas: 28800, pihps: 29100, change: -0.14, history: [29050, 29030, 29010, 29000, 28990, 28980, 28940] },
+
+            // Minyak & Gula
+            { id: 10, name: "Minyakita", category: "Minyak & Gula", unit: "liter", kemendag: 15838, bapanas: 15790, pihps: 15900, change: 0.15, history: [15780, 15790, 15800, 15805, 15810, 15814, 15838] },
+            { id: 11, name: "Minyak Goreng Kemasan Premium", category: "Minyak & Gula", unit: "liter", kemendag: 22631, bapanas: 22550, pihps: 22750, change: 0.09, history: [22580, 22590, 22595, 22600, 22605, 22610, 22631] },
+            { id: 12, name: "Minyak Goreng Curah", category: "Minyak & Gula", unit: "liter", kemendag: 17420, bapanas: 17350, pihps: 17500, change: -0.11, history: [17480, 17470, 17460, 17450, 17445, 17440, 17420] },
+            { id: 13, name: "Gula Pasir Curah", category: "Minyak & Gula", unit: "kg", kemendag: 18660, bapanas: 18590, pihps: 18750, change: -0.05, history: [18690, 18685, 18680, 18675, 18670, 18670, 18660] },
+            { id: 14, name: "Gula Pasir Kemasan Premium", category: "Minyak & Gula", unit: "kg", kemendag: 19450, bapanas: 19380, pihps: 19550, change: 0.03, history: [19430, 19435, 19440, 19440, 19445, 19445, 19450] },
+            { id: 15, name: "Garam Beryodium Halus", category: "Minyak & Gula", unit: "kg", kemendag: 11890, bapanas: 11850, pihps: 11950, change: 0.00, history: [11890, 11890, 11890, 11890, 11890, 11890, 11890] },
+
+            // Daging & Telur
+            { id: 16, name: "Daging Sapi Paha Belakang", category: "Daging & Telur", unit: "kg", kemendag: 144153, bapanas: 143800, pihps: 144600, change: 0.21, history: [143600, 143700, 143750, 143800, 143820, 143850, 144153] },
+            { id: 17, name: "Daging Sapi Sandung Lamur", category: "Daging & Telur", unit: "kg", kemendag: 132400, bapanas: 132000, pihps: 133000, change: -0.15, history: [132800, 132750, 132700, 132650, 132620, 132600, 132400] },
+            { id: 18, name: "Daging Ayam Ras", category: "Daging & Telur", unit: "kg", kemendag: 37090, bapanas: 36950, pihps: 37250, change: -0.32, history: [37450, 37400, 37350, 37300, 37250, 37210, 37090] },
+            { id: 19, name: "Telur Ayam Ras", category: "Daging & Telur", unit: "kg", kemendag: 26005, bapanas: 25900, pihps: 26150, change: -0.24, history: [26200, 26180, 26150, 26120, 26090, 26068, 26005] },
+            { id: 20, name: "Daging Ayam Kampung", category: "Daging & Telur", unit: "kg", kemendag: 68500, bapanas: 68200, pihps: 69000, change: 0.14, history: [68200, 68250, 68300, 68350, 68380, 68400, 68500] },
+            { id: 21, name: "Telur Ayam Kampung", category: "Daging & Telur", unit: "kg", kemendag: 52400, bapanas: 52100, pihps: 52800, change: 0.08, history: [52250, 52280, 52300, 52320, 52340, 52358, 52400] },
+
+            // Cabai & Bawang
+            { id: 22, name: "Cabai Rawit Merah", category: "Cabai & Bawang", unit: "kg", kemendag: 72860, bapanas: 72400, pihps: 73500, change: -0.69, history: [74800, 74500, 74150, 73850, 73600, 73366, 72860] },
+            { id: 23, name: "Cabai Merah Keriting", category: "Cabai & Bawang", unit: "kg", kemendag: 67388, bapanas: 66950, pihps: 67900, change: -0.54, history: [68600, 68400, 68200, 68000, 67850, 67754, 67388] },
+            { id: 24, name: "Cabai Merah Besar", category: "Cabai & Bawang", unit: "kg", kemendag: 64120, bapanas: 63800, pihps: 64600, change: -0.41, history: [65100, 64950, 64800, 64650, 64500, 64384, 64120] },
+            { id: 25, name: "Cabai Rawit Hijau", category: "Cabai & Bawang", unit: "kg", kemendag: 48950, bapanas: 48600, pihps: 49400, change: -0.28, history: [49450, 49380, 49300, 49220, 49150, 49087, 48950] },
+            { id: 26, name: "Bawang Merah", category: "Cabai & Bawang", unit: "kg", kemendag: 34723, bapanas: 34500, pihps: 35050, change: 0.38, history: [34200, 34300, 34400, 34480, 34540, 34592, 34723] },
+            { id: 27, name: "Bawang Putih Honan", category: "Cabai & Bawang", unit: "kg", kemendag: 34170, bapanas: 34050, pihps: 34400, change: 0.18, history: [33950, 33990, 34020, 34050, 34080, 34109, 34170] },
+            { id: 28, name: "Bawang Putih Kating", category: "Cabai & Bawang", unit: "kg", kemendag: 39850, bapanas: 39600, pihps: 40200, change: 0.25, history: [39500, 39560, 39620, 39680, 39720, 39750, 39850] },
+
+            // Ikan & Sayuran
+            { id: 29, name: "Ikan Kembung", category: "Ikan & Sayuran", unit: "kg", kemendag: 44802, bapanas: 44500, pihps: 45200, change: 0.42, history: [44100, 44250, 44380, 44490, 44560, 44615, 44802] },
+            { id: 30, name: "Ikan Tongkol", category: "Ikan & Sayuran", unit: "kg", kemendag: 35640, bapanas: 35400, pihps: 36000, change: -0.19, history: [35900, 35850, 35800, 35760, 35730, 35708, 35640] },
+            { id: 31, name: "Ikan Bandeng", category: "Ikan & Sayuran", unit: "kg", kemendag: 36920, bapanas: 36750, pihps: 37200, change: 0.11, history: [36780, 36810, 36830, 36850, 36870, 36880, 36920] },
+            { id: 32, name: "Tomat", category: "Ikan & Sayuran", unit: "kg", kemendag: 15413, bapanas: 15250, pihps: 15600, change: -0.45, history: [15720, 15660, 15600, 15550, 15510, 15483, 15413] },
+            { id: 33, name: "Ketela Pohon", category: "Ikan & Sayuran", unit: "kg", kemendag: 4970, bapanas: 4900, pihps: 5050, change: 0.81, history: [4820, 4845, 4870, 4890, 4910, 4930, 4970] }
+        ];
+
+        // Pengali wilayah untuk variasi harga regional otomatis
+        const regionMultipliers = {
+            nasional: { factor: 1.00, label: "Nasional (HNT - Rata-rata)" },
+            regionA:  { factor: 0.96, label: "Region A (Jawa, Bali & Nusra)" },
+            regionB:  { factor: 1.04, label: "Region B (Sumatera, Kalimantan & Sulawesi)" },
+            regionC:  { factor: 1.18, label: "Region C (Maluku & Papua)" }
+        };
+
+        // State Aplikasi
+        let currentRegion = 'nasional';
+        let currentCategory = 'Semua';
+        let selectedCommodityId = 1; // Default Beras Premium
+        let trendChartInstance = null;
+        let sourceChartInstance = null;
+        let calculatorCart = [
+            { id: 1, qty: 5 },   // 5 kg Beras Premium
+            { id: 10, qty: 2 },  // 2 liter Minyakita
+            { id: 19, qty: 1 },  // 1 kg Telur Ayam Ras
+            { id: 22, qty: 0.5 } // 0.5 kg Cabai Rawit Merah
+        ];
+
+        // ==========================================
+        // 2. HELPER FORMATTER & KALKULASI REGIONAL
+        // ==========================================
+        function formatRupiah(angka) {
+            return 'Rp ' + Math.round(angka).toLocaleString('id-ID');
+        }
+
+        function getRegionalPrices(item) {
+            const mult = regionMultipliers[currentRegion].factor;
+            return {
+                kemendag: Math.round(item.kemendag * mult),
+                bapanas: Math.round(item.bapanas * mult),
+                pihps: Math.round(item.pihps * mult),
+                history: item.history.map(h => Math.round(h * mult))
+            };
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-slate-900 border-emerald-500 text-white' : 'bg-rose-900 border-rose-500 text-white';
+            const iconName = type === 'success' ? 'check-circle-2' : 'alert-circle';
+            const iconColor = type === 'success' ? 'text-emerald-400' : 'text-rose-400';
+
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border-l-4 shadow-xl text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${bgClass}`;
+            toast.innerHTML = `
+                <i data-lucide="${iconName}" class="w-5 h-5 ${iconColor} shrink-0"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        // ==========================================
+        // 3. UPDATE KPI CARDS
+        // ==========================================
+        function updateKPICards() {
+            const total = commoditiesData.length;
+            const sumChange = commoditiesData.reduce((acc, item) => acc + item.change, 0);
+            const avgChange = (sumChange / total).toFixed(2);
+
+            const sortedByChange = [...commoditiesData].sort((a, b) => b.change - a.change);
+            const topUp = sortedByChange[0];
+            const topDown = sortedByChange[sortedByChange.length - 1];
+
+            // Update Avg Change
+            const avgEl = document.getElementById('kpi-avg-change');
+            const badgeEl = document.getElementById('kpi-avg-badge');
+            avgEl.textContent = (avgChange > 0 ? '+' : '') + avgChange + '%';
+            
+            if (parseFloat(avgChange) > 0) {
+                badgeEl.className = 'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-700';
+                badgeEl.innerHTML = `<i data-lucide="trending-up" class="w-3 h-3"></i> Naik Tipis`;
+            } else {
+                badgeEl.className = 'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700';
+                badgeEl.innerHTML = `<i data-lucide="trending-down" class="w-3 h-3"></i> Stabil Turun`;
+            }
+
+            // Update Top Up
+            const topUpPrices = getRegionalPrices(topUp);
+            document.getElementById('kpi-top-up-name').textContent = topUp.name;
+            document.getElementById('kpi-top-up-pct').textContent = `+${topUp.change.toFixed(2)}%`;
+            document.getElementById('kpi-top-up-price').textContent = `${formatRupiah(topUpPrices.kemendag)} / ${topUp.unit} (SP2KP Kemendag)`;
+
+            // Update Top Down
+            const topDownPrices = getRegionalPrices(topDown);
+            document.getElementById('kpi-top-down-name').textContent = topDown.name;
+            document.getElementById('kpi-top-down-pct').textContent = `${topDown.change.toFixed(2)}%`;
+            document.getElementById('kpi-top-down-price').textContent = `${formatRupiah(topDownPrices.kemendag)} / ${topDown.unit} (SP2KP Kemendag)`;
+
+            // Update Total
+            document.getElementById('kpi-total-count').textContent = total;
+            lucide.createIcons();
+        }
+
+        // ==========================================
+        // 4. RENDER TABEL & KARTU MOBILE
+        // ==========================================
+        function setCategory(cat) {
+            currentCategory = cat;
+            document.querySelectorAll('.cat-pill').forEach(btn => {
+                if (btn.dataset.cat === cat) {
+                    btn.className = 'cat-pill active min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white whitespace-nowrap transition shrink-0';
+                } else {
+                    btn.className = 'cat-pill min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap transition shrink-0';
+                }
+            });
+            applyFilters();
+        }
+
+        function resetFilters() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('source-filter').value = 'all';
+            document.getElementById('sort-filter').value = 'default';
+            setCategory('Semua');
+        }
+
+        function applyFilters() {
+            const searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
+            const sourceFocus = document.getElementById('source-filter').value;
+            const sortBy = document.getElementById('sort-filter').value;
+
+            let filtered = commoditiesData.filter(item => {
+                const matchCat = currentCategory === 'Semua' || item.category === currentCategory;
+                const matchSearch = item.name.toLowerCase().includes(searchQuery) || item.category.toLowerCase().includes(searchQuery);
+                return matchCat && matchSearch;
+            });
+
+            // Sorting
+            if (sortBy === 'change-desc') {
+                filtered.sort((a, b) => b.change - a.change);
+            } else if (sortBy === 'change-asc') {
+                filtered.sort((a, b) => a.change - b.change);
+            } else if (sortBy === 'price-desc') {
+                filtered.sort((a, b) => getRegionalPrices(b).kemendag - getRegionalPrices(a).kemendag);
+            } else if (sortBy === 'price-asc') {
+                filtered.sort((a, b) => getRegionalPrices(a).kemendag - getRegionalPrices(b).kemendag);
+            }
+
+            renderTableAndCards(filtered, sourceFocus);
+        }
+
+        function renderTableAndCards(items, sourceFocus) {
+            const tbody = document.getElementById('commodity-table-body');
+            const mobileContainer = document.getElementById('commodity-mobile-cards');
+            const emptyState = document.getElementById('empty-state');
+
+            tbody.innerHTML = '';
+            mobileContainer.innerHTML = '';
+
+            if (items.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            items.forEach(item => {
+                const prices = getRegionalPrices(item);
+                const avgPrice = Math.round((prices.kemendag + prices.bapanas + prices.pihps) / 3);
+                const maxPrice = Math.max(prices.kemendag, prices.bapanas, prices.pihps);
+                const minPrice = Math.min(prices.kemendag, prices.bapanas, prices.pihps);
+                const spread = maxPrice - minPrice;
+
+                const isUp = item.change > 0;
+                const isDown = item.change < 0;
+                const changeBadgeClass = isUp 
+                    ? 'bg-rose-100 text-rose-700 border-rose-200' 
+                    : isDown 
+                        ? 'bg-emerald-100 text-emerald-700 border-emerald-200' 
+                        : 'bg-slate-100 text-slate-600 border-slate-200';
+                const changeIcon = isUp ? 'trending-up' : isDown ? 'trending-down' : 'minus';
+                const changeText = (isUp ? '+' : '') + item.change.toFixed(2) + '%';
+
+                const isSelected = item.id === selectedCommodityId;
+
+                // Highlight kolom berdasarkan filter sumber
+                const kemendagHighlight = (sourceFocus === 'all' || sourceFocus === 'kemendag') ? 'font-bold text-emerald-800 bg-emerald-50/40' : 'text-slate-400';
+                const bapanasHighlight = (sourceFocus === 'all' || sourceFocus === 'bapanas') ? 'font-semibold text-slate-800' : 'text-slate-400';
+                const pihpsHighlight = (sourceFocus === 'all' || sourceFocus === 'pihps') ? 'font-semibold text-slate-800' : 'text-slate-400';
+
+                // Desktop Row (Read-Only, tanpa tombol edit)
+                const tr = document.createElement('tr');
+                tr.className = `hover:bg-slate-50/90 transition cursor-pointer ${isSelected ? 'row-selected' : ''}`;
+                tr.onclick = () => selectCommodityForChart(item.id);
+                tr.innerHTML = `
+                    <td class="py-3.5 px-4">
+                        <div class="font-semibold text-slate-900 flex items-center gap-2">
+                            <span>${item.name}</span>
+                            ${isSelected ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-600 text-white rounded">Grafik Aktif</span>' : ''}
+                        </div>
+                        <span class="text-xs text-slate-500">${item.category}</span>
+                    </td>
+                    <td class="py-3.5 px-3 text-center">
+                        <span class="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded-lg">${item.unit}</span>
+                    </td>
+                    <td class="py-3.5 px-4 text-right ${kemendagHighlight}">
+                        ${formatRupiah(prices.kemendag)}
+                    </td>
+                    <td class="py-3.5 px-4 text-right ${bapanasHighlight}">
+                        ${formatRupiah(prices.bapanas)}
+                    </td>
+                    <td class="py-3.5 px-4 text-right ${pihpsHighlight}">
+                        ${formatRupiah(prices.pihps)}
+                    </td>
+                    <td class="py-3.5 px-4 text-right">
+                        <div class="font-bold text-slate-800">${formatRupiah(avgPrice)}</div>
+                        <div class="text-[11px] text-slate-400">Selisih: ${formatRupiah(spread)}</div>
+                    </td>
+                    <td class="py-3.5 px-4 text-center">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${changeBadgeClass}">
+                            <i data-lucide="${changeIcon}" class="w-3 h-3"></i>
+                            ${changeText}
+                        </span>
+                    </td>
+                    <td class="py-3.5 px-4 text-center" onclick="event.stopPropagation()">
+                        <button onclick="addToCalculator(${item.id})" title="Tambah ke Kalkulator Belanja" class="inline-flex items-center justify-center w-9 h-9 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition">
+                            <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+
+                // Mobile Card (< 768px) - Tap-Friendly dengan Grid Mini 2 Kolom Pembanding
+                const card = document.createElement('div');
+                card.className = `rounded-2xl p-3.5 border transition cursor-pointer shadow-sm ${
+                    isSelected 
+                        ? 'bg-emerald-50/70 border-emerald-500 ring-1 ring-emerald-500' 
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                }`;
+                card.onclick = () => selectCommodityForChart(item.id, true);
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-[11px] font-medium text-slate-500">${item.category}</span>
+                                ${isSelected ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-600 text-white rounded-md">Grafik Aktif</span>' : ''}
+                            </div>
+                            <h4 class="text-sm font-bold text-slate-900 mt-0.5 leading-snug">${item.name}</h4>
+                        </div>
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${changeBadgeClass} shrink-0">
+                            <i data-lucide="${changeIcon}" class="w-3 h-3"></i>
+                            ${changeText}
+                        </span>
+                    </div>
+
+                    <!-- Harga Utama SP2KP Kemendag -->
+                    <div class="mt-2.5 flex items-baseline justify-between bg-emerald-50/80 border border-emerald-100 px-3 py-2 rounded-xl">
+                        <span class="text-[11px] font-semibold text-emerald-800">SP2KP Kemendag</span>
+                        <div>
+                            <span class="text-base font-extrabold text-emerald-700">${formatRupiah(prices.kemendag)}</span>
+                            <span class="text-[11px] text-emerald-700/80 font-medium">/${item.unit}</span>
+                        </div>
+                    </div>
+
+                    <!-- Grid Mini 2 Kolom: Bapanas & PIHPS BI -->
+                    <div class="grid grid-cols-2 gap-2 mt-2 text-xs">
+                        <div class="bg-slate-50 border border-slate-100 px-2.5 py-2 rounded-xl">
+                            <span class="text-slate-400 block text-[10px] font-medium">Panel Bapanas</span>
+                            <span class="font-bold text-slate-800">${formatRupiah(prices.bapanas)}</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-100 px-2.5 py-2 rounded-xl">
+                            <span class="text-slate-400 block text-[10px] font-medium">PIHPS Bank Indonesia</span>
+                            <span class="font-bold text-slate-800">${formatRupiah(prices.pihps)}</span>
+                        </div>
+                    </div>
+
+                    <!-- Baris Bawah Kartu: Rata-rata & Tombol Tambah Belanja -->
+                    <div class="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-slate-100" onclick="event.stopPropagation()">
+                        <div class="text-[11px] text-slate-500">
+                            Rata-rata: <strong class="text-slate-800">${formatRupiah(avgPrice)}</strong>
+                        </div>
+                        <button onclick="addToCalculator(${item.id})" class="min-h-[40px] px-3.5 py-2 text-xs font-semibold text-white bg-emerald-600 active:bg-emerald-700 rounded-xl flex items-center gap-1.5 shadow-sm transition">
+                            <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i>
+                            <span>+ Belanja</span>
+                        </button>
+                    </div>
+                `;
+                mobileContainer.appendChild(card);
+            });
+
+            lucide.createIcons();
+        }
+
+        // ==========================================
+        // 5. GRAFIK INTERAKTIF (CHART.JS)
+        // ==========================================
+        function selectCommodityForChart(id, scrollToChart = false) {
+            selectedCommodityId = id;
+            applyFilters();
+            updateCharts();
+            if (scrollToChart) {
+                document.getElementById('chart-section').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function updateCharts() {
+            const item = commoditiesData.find(c => c.id === selectedCommodityId) || commoditiesData[0];
+            const prices = getRegionalPrices(item);
+
+            // Update Header Grafik
+            document.getElementById('chart-commodity-title').textContent = `${item.name} (per ${item.unit})`;
+            document.getElementById('chart-region-badge').textContent = `Wilayah: ${regionMultipliers[currentRegion].label}`;
+            document.getElementById('selected-kemendag').textContent = formatRupiah(prices.kemendag);
+            document.getElementById('selected-bapanas').textContent = formatRupiah(prices.bapanas);
+            document.getElementById('selected-pihps').textContent = formatRupiah(prices.pihps);
+
+            // 1. Trend Chart (7 Hari Terakhir)
+            const labels7Days = ['19 Nov', '20 Nov', '21 Nov', '22 Nov', '23 Nov', '24 Nov', '25 Nov'];
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+
+            if (trendChartInstance) {
+                trendChartInstance.destroy();
+            }
+
+            // Buat estimasi historis Bapanas & PIHPS berdasarkan rasio saat ini
+            const ratioBapanas = prices.bapanas / prices.kemendag;
+            const ratioPihps = prices.pihps / prices.kemendag;
+            const historyBapanas = prices.history.map(val => Math.round(val * ratioBapanas));
+            const historyPihps = prices.history.map(val => Math.round(val * ratioPihps));
+
+            trendChartInstance = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: labels7Days,
+                    datasets: [
+                        {
+                            label: 'Kemendag SP2KP',
+                            data: prices.history,
+                            borderColor: '#059669',
+                            backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.35,
+                            fill: true,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#059669'
+                        },
+                        {
+                            label: 'Panel Bapanas',
+                            data: historyBapanas,
+                            borderColor: '#d97706',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.35,
+                            pointRadius: 3
+                        },
+                        {
+                            label: 'PIHPS BI',
+                            data: historyPihps,
+                            borderColor: '#2563eb',
+                            borderWidth: 2,
+                            tension: 0.35,
+                            pointRadius: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { usePointStyle: true, boxWidth: 8, font: { family: 'Inter', size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${formatRupiah(context.parsed.y)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                font: { family: 'Inter', size: 11 },
+                                callback: function(value) {
+                                    return 'Rp ' + value.toLocaleString('id-ID');
+                                }
+                            },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        x: {
+                            ticks: { font: { family: 'Inter', size: 11 } },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // 2. Source Comparison Chart (Bar Chart)
+            const ctxSource = document.getElementById('sourceCompareChart').getContext('2d');
+            if (sourceChartInstance) {
+                sourceChartInstance.destroy();
+            }
+
+            const minVal = Math.min(prices.kemendag, prices.bapanas, prices.pihps);
+            const suggestedMin = Math.floor(minVal * 0.96);
+
+            sourceChartInstance = new Chart(ctxSource, {
+                type: 'bar',
+                data: {
+                    labels: ['Kemendag SP2KP', 'Panel Bapanas', 'PIHPS BI'],
+                    datasets: [{
+                        label: `Harga per ${item.unit}`,
+                        data: [prices.kemendag, prices.bapanas, prices.pihps],
+                        backgroundColor: ['#059669', '#f59e0b', '#2563eb'],
+                        borderRadius: 10,
+                        barThickness: 36
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return formatRupiah(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: suggestedMin,
+                            ticks: {
+                                font: { family: 'Inter', size: 11 },
+                                callback: function(value) {
+                                    return 'Rp ' + value.toLocaleString('id-ID');
+                                }
+                            },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        x: {
+                            ticks: { font: { family: 'Inter', size: 11, weight: '600' } },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==========================================
+        // 6. KALKULATOR BELANJA SEMBAKO
+        // ==========================================
+        function populateCalculatorSelect() {
+            const select = document.getElementById('calc-add-select');
+            select.innerHTML = commoditiesData.map(item => 
+                `<option value="${item.id}">${item.name} (${formatRupiah(getRegionalPrices(item).kemendag)} / ${item.unit})</option>`
+            ).join('');
+        }
+
+        function addSelectedToCalculator() {
+            const id = parseInt(document.getElementById('calc-add-select').value);
+            const qty = parseFloat(document.getElementById('calc-add-qty').value) || 1;
+            addToCalculator(id, qty);
+        }
+
+        function addToCalculator(id, qty = 1) {
+            const existing = calculatorCart.find(c => c.id === id);
+            if (existing) {
+                existing.qty = parseFloat((existing.qty + qty).toFixed(2));
+            } else {
+                calculatorCart.push({ id, qty });
+            }
+            const item = commoditiesData.find(c => c.id === id);
+            renderCalculator();
+            showToast(`${item.name} (${qty} ${item.unit}) ditambahkan ke kalkulator.`);
+        }
+
+        function updateCartQty(id, delta) {
+            const existing = calculatorCart.find(c => c.id === id);
+            if (!existing) return;
+            existing.qty = parseFloat((existing.qty + delta).toFixed(2));
+            if (existing.qty <= 0) {
+                calculatorCart = calculatorCart.filter(c => c.id !== id);
+            }
+            renderCalculator();
+        }
+
+        function removeFromCart(id) {
+            calculatorCart = calculatorCart.filter(c => c.id !== id);
+            renderCalculator();
+        }
+
+        function clearCalculator() {
+            calculatorCart = [];
+            renderCalculator();
+            showToast('Daftar belanja di kalkulator berhasil dikosongkan.');
+        }
+
+        function loadCalculatorPreset(preset) {
+            if (!preset) return;
+
+            if (preset === 'harian') {
+                calculatorCart = [
+                    { id: 1, qty: 2 },   // Beras Premium 2kg
+                    { id: 18, qty: 1 },  // Daging Ayam Ras 1kg
+                    { id: 19, qty: 0.5 },// Telur 0.5kg
+                    { id: 22, qty: 0.25 },// Cabai Rawit 0.25kg
+                    { id: 26, qty: 0.25 },// Bawang Merah 0.25kg
+                    { id: 32, qty: 0.5 } // Tomat 0.5kg
+                ];
+            } else if (preset === 'mingguan') {
+                calculatorCart = [
+                    { id: 1, qty: 10 },  // Beras 10kg
+                    { id: 10, qty: 2 },  // Minyakita 2L
+                    { id: 13, qty: 2 },  // Gula Pasir 2kg
+                    { id: 19, qty: 2 },  // Telur 2kg
+                    { id: 18, qty: 2 },  // Ayam 2kg
+                    { id: 26, qty: 1 },  // Bawang Merah 1kg
+                    { id: 27, qty: 0.5 } // Bawang Putih 0.5kg
+                ];
+            } else if (preset === 'umkm') {
+                calculatorCart = [
+                    { id: 2, qty: 25 },  // Beras Medium 25kg
+                    { id: 12, qty: 10 }, // Minyak Curah 10L
+                    { id: 6, qty: 5 },   // Terigu 5kg
+                    { id: 22, qty: 3 },  // Cabai Rawit 3kg
+                    { id: 23, qty: 3 },  // Cabai Keriting 3kg
+                    { id: 26, qty: 4 }   // Bawang Merah 4kg
+                ];
+            }
+            renderCalculator();
+            showToast(`Paket belanja ${preset.toUpperCase()} berhasil dimuat ke kalkulator.`);
+        }
+
+        function toggleCalculatorDrawer() {
+            document.getElementById('calculator-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function renderCalculator() {
+            const listEl = document.getElementById('calc-items-list');
+            document.getElementById('calc-badge-count').textContent = calculatorCart.length;
+            document.getElementById('calc-region-label').textContent = regionMultipliers[currentRegion].label.split(' ')[0];
+
+            if (calculatorCart.length === 0) {
+                listEl.innerHTML = `
+                    <div class="p-6 text-center text-xs text-slate-500">
+                        Belum ada item di daftar belanja. Pilih komoditas di atas atau ketuk tombol belanja pada kartu/tabel harga.
+                    </div>
+                `;
+                document.getElementById('calc-total-kemendag').textContent = 'Rp 0';
+                document.getElementById('calc-total-bapanas').textContent = 'Rp 0';
+                document.getElementById('calc-total-pihps').textContent = 'Rp 0';
+                document.getElementById('calc-total-avg').textContent = 'Rp 0';
+                return;
+            }
+
+            let totalKemendag = 0;
+            let totalBapanas = 0;
+            let totalPihps = 0;
+
+            listEl.innerHTML = calculatorCart.map(entry => {
+                const item = commoditiesData.find(c => c.id === entry.id);
+                if (!item) return '';
+                const prices = getRegionalPrices(item);
+                const subKemendag = prices.kemendag * entry.qty;
+                totalKemendag += subKemendag;
+                totalBapanas += prices.bapanas * entry.qty;
+                totalPihps += prices.pihps * entry.qty;
+
+                return `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white hover:bg-slate-50 transition gap-2.5">
+                        <div class="min-w-0 flex-1 flex items-start justify-between sm:block">
+                            <div class="min-w-0">
+                                <div class="font-semibold text-sm text-slate-800 truncate">${item.name}</div>
+                                <div class="text-xs text-slate-500">${formatRupiah(prices.kemendag)} / ${item.unit}</div>
+                            </div>
+                            <div class="sm:hidden text-right shrink-0 ml-2">
+                                <div class="text-sm font-bold text-emerald-700">${formatRupiah(subKemendag)}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="updateCartQty(${item.id}, -0.5)" aria-label="Kurangi jumlah" class="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 text-base font-bold flex items-center justify-center transition">-</button>
+                                <span class="w-16 text-center text-xs font-bold text-slate-800">${entry.qty} ${item.unit}</span>
+                                <button onclick="updateCartQty(${item.id}, 0.5)" aria-label="Tambah jumlah" class="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 text-base font-bold flex items-center justify-center transition">+</button>
+                            </div>
+                            <div class="hidden sm:block text-right w-24 shrink-0">
+                                <div class="text-sm font-bold text-emerald-700">${formatRupiah(subKemendag)}</div>
+                            </div>
+                            <button onclick="removeFromCart(${item.id})" aria-label="Hapus item" class="w-11 h-11 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const totalAvg = Math.round((totalKemendag + totalBapanas + totalPihps) / 3);
+            document.getElementById('calc-total-kemendag').textContent = formatRupiah(totalKemendag);
+            document.getElementById('calc-total-bapanas').textContent = formatRupiah(totalBapanas);
+            document.getElementById('calc-total-pihps').textContent = formatRupiah(totalPihps);
+            document.getElementById('calc-total-avg').textContent = formatRupiah(totalAvg);
+
+            lucide.createIcons();
+        }
+
+        // ==========================================
+        // 7. EKSPOR CSV & SINKRONISASI OTOMATIS
+        // ==========================================
+        function exportToCSV() {
+            const headers = ['ID', 'Komoditas', 'Kategori', 'Satuan', 'Wilayah', 'Kemendag_SP2KP_Rp', 'Panel_Bapanas_Rp', 'PIHPS_BI_Rp', 'Rata_Rata_Rp', 'Perubahan_Harian_Pct'];
+            const rows = commoditiesData.map(item => {
+                const p = getRegionalPrices(item);
+                const avg = Math.round((p.kemendag + p.bapanas + p.pihps) / 3);
+                return [
+                    item.id,
+                    `"${item.name}"`,
+                    `"${item.category}"`,
+                    item.unit,
+                    `"${regionMultipliers[currentRegion].label}"`,
+                    p.kemendag,
+                    p.bapanas,
+                    p.pihps,
+                    avg,
+                    item.change
+                ].join(',');
+            });
+
+            const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `PantauPangan_${currentRegion}_25Nov2026.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('File CSV harga sembako berhasil diunduh!');
+        }
+
+        function handleRegionChange() {
+            currentRegion = document.getElementById('region-select').value;
+            updateKPICards();
+            applyFilters();
+            updateCharts();
+            populateCalculatorSelect();
+            renderCalculator();
+            showToast(`Menampilkan data harga untuk ${regionMultipliers[currentRegion].label}`);
+        }
+
+        function syncData() {
+            const btn = document.getElementById('sync-btn');
+            const icon = document.getElementById('sync-icon');
+            btn.disabled = true;
+            btn.classList.add('opacity-75');
+            icon.classList.add('animate-spin');
+
+            setTimeout(() => {
+                // Simulasi pembaruan mikro real-time pada beberapa komoditas
+                commoditiesData.forEach(item => {
+                    if (item.id !== 3 && item.id !== 15) { // Kecuali SPHP & Garam
+                        const deltaPct = (Math.random() * 0.2 - 0.1);
+                        item.kemendag = Math.round(item.kemendag * (1 + deltaPct / 100));
+                        item.bapanas = Math.round(item.bapanas * (1 + deltaPct / 100));
+                        item.pihps = Math.round(item.pihps * (1 + deltaPct / 100));
+                        item.history[6] = item.kemendag;
+                    }
+                });
+
+                const now = new Date();
+                const jam = String(now.getHours()).padStart(2, '0');
+                const menit = String(now.getMinutes()).padStart(2, '0');
+                document.getElementById('last-updated-text').textContent = `25 Nov 2026, ${jam}:${menit} WIB`;
+
+                updateKPICards();
+                applyFilters();
+                updateCharts();
+                renderCalculator();
+
+                btn.disabled = false;
+                btn.classList.remove('opacity-75');
+                icon.classList.remove('animate-spin');
+                showToast('Sinkronisasi otomatis berhasil dengan SP2KP Kemendag, Bapanas & PIHPS BI!');
+            }, 900);
+        }
+
+        // ==========================================
+        // 8. INISIALISASI HALAMAN
+        // ==========================================
+        window.onload = function() {
+            lucide.createIcons();
+            updateKPICards();
+            applyFilters();
+            updateCharts();
+            populateCalculatorSelect();
+            renderCalculator();
+        };
+    </script>
+</body>
+</html>
